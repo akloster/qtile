@@ -35,6 +35,7 @@ from typing import Any, Optional, Tuple
 
 from libqtile.log_utils import logger
 from libqtile.utils import get_cache_dir
+import concurrent.futures
 
 HDRFORMAT = "!L"
 HDRLEN = struct.calcsize(HDRFORMAT)
@@ -160,8 +161,13 @@ class Client:
         If any exception is raised by the server, that will propogate out of
         this call.
         """
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            fut = pool.submit(self.sync_send, msg)
+            concurrent.futures.wait([fut])
+            return fut.result()
+    def sync_send(self, msg: Any) -> Any:
         return asyncio.run(self.async_send(msg))
-
+        
     async def async_send(self, msg: Any) -> Any:
         """Send the message to the server
 
